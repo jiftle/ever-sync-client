@@ -1,0 +1,53 @@
+import {
+  EverSyncClient
+} from "./eversyncclient";
+
+
+
+function greeter(person) {
+    return "Hello, " + person;
+}
+
+let user = "Jane User";
+
+console.log(greeter(user));
+
+
+//参数配置
+let config = {
+  token : "S=s58:U=d1c0c7:E=16f03ef2457:C=16edfe29da8:P=1cd:A=en-devtoken:V=2:H=f6ba1e4118af4731e11ea132cf1257ce",
+  noteStoreUrl : "https://app.yinxiang.com/shard/s58/notestore"
+};
+// 调用客户端
+let client = new EverSyncClient();
+
+// 登录
+client.syncAccount(config.token, config.noteStoreUrl).then(function(){
+
+    // 列出笔记本列表 --测试接口是否畅通
+    let notebooks = client.listNotebooks();
+    console.log(notebooks);
+
+    client.listNotes(notebooks[0]).then(function(notes){
+        console.log(notes);
+    });
+    //  });
+
+
+    // ------------------ 新建笔记 ----------------
+    let meta = {
+        title:"EverSyncClient Test",
+        tags: "markdown",
+        notebook: "blog"
+    }
+    let content = "11111"
+    let resources = 0;
+    var a = client.createNote(meta,content,resources);
+
+
+    // ------------- 更新笔记 -------------------
+    //   let noteGuid = "" ;
+    //     client.updateNoteContent(meta, content, noteGuid) ;
+
+});
+

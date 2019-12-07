@@ -79,7 +79,7 @@ export class EverSyncClient {
   }
 
   // List all notebooks name.
-  async listNotebooks() {
+  listNotebooks() {
     try {
       return notebooks.map(notebook => notebook.name);
     } catch (err) {
@@ -96,7 +96,8 @@ export class EverSyncClient {
       let noteLists = notesMap[selectedNotebook.guid];
       return noteLists;
   }
-  //  exact text Metadata by convention
+
+  //  exact text Metadata by convention 分析文件头得到元数据
   exactMetadata(text) {
     let metadata = {};
     let content = text;
@@ -247,18 +248,24 @@ export class EverSyncClient {
     }
   }
 
-  // Create an new note.
-  async createNote(meta, content, resources) {
-    try {
-      let tagNames = meta["tags"];
-      let title = meta["title"];
-      let notebook = meta["notebook"];
-      const notebookGuid = await this.getNotebookGuid(notebook);
-      return client.createNote(title, notebookGuid, content, tagNames, resources);
-    } catch (err) {
-     this.wrapError(err);
+    // Create an new note.
+    async createNote(meta, content, resources) {
+        try {
+            let tagNames = meta["tags"];
+            let title = meta["title"];
+            let notebook = meta["notebook"];
+            console.log("notebook=" + notebook);
+
+            // 获得笔记本的guid
+            const notebookGuid = await this.getNotebookGuid(notebook);
+
+            console.log("notebook guid =" + notebookGuid);
+            const note = await client.createNote(title, notebookGuid, content, tagNames, resources||void 0);
+            return note
+        } catch (err) {
+        this.wrapError(err);
+        }
     }
-  }
 
 
   // Search note.
@@ -293,6 +300,15 @@ export class EverSyncClient {
 
   }
 
+    // 获取笔记内容
+    async getNoteContent(noteGuid){
+        try {
+          const note = await client.getNoteContent(noteGuid);
+          return note
+        } catch (err) {
+          this.wrapError(err);
+        }
+    }
 
   getNoteLink(noteGuid) {
     const token = config.token;
