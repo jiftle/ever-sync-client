@@ -24,6 +24,13 @@ let markdown;
 
 const converter = new Converter({});
 
+//--------------------- 单元测试,测试用例 ----------------------[
+// 1. 同步账号信息，包括笔记本，笔记
+// 2. 新建笔记
+// 3. 更新笔记
+// 4. 根据笔记标题查找笔记
+// 5. 获取笔记内容
+//--------------------- 单元测试,测试用例 ----------------------]
 
 //参数配置
 let config = {
@@ -55,12 +62,12 @@ client.syncAccount(config.token, config.noteStoreUrl).then(function(){
 
 
 
+    //    // ------------------ 新建笔记 ----------------
     //    markdown = "你好啊我的Markdown笔记";
     //    // 转换笔记内容为印象笔记的专用格式
     //    converter.toEnml(markdown).then(function(enml){
     //        console.log(enml);
     //
-    //        // 异步方式
     //        // ------------------ 新建笔记 ----------------
     //        let meta = {
     //            title:"EverSyncClient Test",
@@ -70,36 +77,57 @@ client.syncAccount(config.token, config.noteStoreUrl).then(function(){
     //        let content = enml;
     //        let resources = 0;
     //        client.createNote(meta,content,resources).then(function(nte) {
-    //            console.log("create note success!\n-------------------\nnoteGuid=" + nte.guid + "\nnoteTitle=" + nte.title + "\nnotebookGuid=" + nte.notebookGuid + "\n");
+    //            console.log("---> create note success!\n-------------------\nnoteGuid=" + nte.guid + "\nnoteTitle=" + nte.title + "\nnotebookGuid=" + nte.notebookGuid + "\n");
     //        });
     //    });
     //
     //    return;
 
-    // ------------- 更新笔记 -------------------
-    let noteGuid = "4f53529a-e2b5-468e-b76a-b8d27370f1c0" ;
-    let markdown_update = "你好啊我的Markdown笔记,更新内容成功了，祝贺我吧，打小孩了\n，啊啊啊，时间戳转字符串，我要去做饭了";
 
-    // 转换笔记内容为印象笔记的专用格式
-    converter.toEnml(markdown_update).then(function(enml){
-        //console.log(enml);
+    // --------------- 根据标题查找笔记，是否存在，如果存在就返回笔记的guid ---------
+    let title = "EverSyncClient Test";
+    let noteGuid = "";
+    client.getNoteGuidByTitle(title).then(function(guid) {
+        noteGuid = guid;
+        console.log("---> query note[%s] success! noteGuid=%s\n", title,noteGuid);
 
-        // 异步方式
-        // ------------------ 新建笔记 ----------------
-        let meta = {
-            title:"EverSyncClient Test",
-            tags: "markdown",
-            notebook: "blog"
-        }
-        let content = enml;
-        let resources = 0;
-        client.updateNoteContent(meta, content, noteGuid).then(function(nte) {
-            console.log("update note success!\n标题: %s\n创建时间: %s\n更新时间: %s\n",
-                nte.title,
-                moment(nte.created).format("YYYY-MM-DD HH:mm:ss"),
-                moment(nte.updated).format("YYYY-MM-DD HH:mm:ss")
-            );
+        // ------------- 获取笔记内容 ---------------
+        client.getNoteContent(noteGuid).then(function(note) {
+            console.log("---> 笔记本内容:\n%s\n", note.content);
+            noteGuid = note.guid;
+
+            // ------------- 更新笔记 -------------------
+            console.log("---> 开始更新笔记了,noteGuid=%s", noteGuid);
+            let content = note.content;
+            //let noteGuid = "4f53529a-e2b5-468e-b76a-b8d27370f1c0" ;
+            let markdown_update = "你好啊我的Markdown笔记,更新内容成功了，祝贺我吧，打小孩了\n，啊啊啊，时间戳转字符串，我要去做饭了";
+
+            markdown_update = content + "<br>" + "嗨，更新了";
+            // 转换笔记内容为印象笔记的专用格式
+            converter.toEnml(markdown_update).then(function(enml){
+                //console.log(enml);
+
+            console.log("---> 开始更新笔记了[2],noteGuid=%s", noteGuid);
+                // 更新笔记内容
+                let meta = {
+                    title:"EverSyncClient Test",
+                    tags: "markdown",
+                    notebook: "blog"
+                }
+                let content = enml;
+                let resources = 0;
+                client.updateNoteContent(meta, content, noteGuid).then(function(nte) {
+                    console.log("---> update note success!\n标题: %s\n创建时间: %s\n更新时间: %s\n",
+                        nte.title,
+                        moment(nte.created).format("YYYY-MM-DD HH:mm:ss"),
+                        moment(nte.updated).format("YYYY-MM-DD HH:mm:ss")
+                    );
+                });
+            });// 更新笔记
+
         });
+
     });
+
 });
 

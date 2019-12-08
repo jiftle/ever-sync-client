@@ -148,105 +148,124 @@ export class EverSyncClient {
         let noteGuid = localNote[fileName].guid;
         const noteResources = await client.getNoteResources(noteGuid);
           updatedNote = await this.updateNoteContent(meta, content, noteGuid);
-        let notebookName = notebooks.find(notebook => notebook.guid === updatedNote.notebookGuid).name;
-        // attachments cache should be removed.
-        console.log(`${notebookName}>>${title} updated successfully.`);
+          let notebookName = notebooks.find(notebook => notebook.guid === updatedNote.notebookGuid).name;
+          // attachments cache should be removed.
+          console.log(`${notebookName}>>${title} updated successfully.`);
       } else {
-        const nguid = await this.getNoteGuid(meta);
-        if (nguid) {
-          const updateNote = await this.updateNoteOnServer(meta, content, resources, nguid);
-          updateNote.resources = resources;
-          if (!notesMap[updateNote.notebookGuid]) {
-            notesMap[updateNote.notebookGuid] = [updateNote];
+          const nguid = await this.getNoteGuid(meta);
+          if (nguid) {
+              const updateNote = await this.updateNoteOnServer(meta, content, resources, nguid);
+              updateNote.resources = resources;
+              if (!notesMap[updateNote.notebookGuid]) {
+                  notesMap[updateNote.notebookGuid] = [updateNote];
+              } else {
+                  notesMap[updateNote.notebookGuid].push(updateNote);
+              }
+              localNote[fileName] = updateNote;
+              let notebookName = notebooks.find(notebook => notebook.guid === updateNote.notebookGuid).name;
+              attachmentsCache[fileName] = [];
+              return console.log(`${notebookName}>>${title} update to server successfully.`);
           } else {
-            notesMap[updateNote.notebookGuid].push(updateNote);
+              const createdNote = await this.createNote(meta, content, resources);
+              createdNote.resources = resources;
+              if (!notesMap[createdNote.notebookGuid]) {
+                  notesMap[createdNote.notebookGuid] = [createdNote];
+              } else {
+                  notesMap[createdNote.notebookGuid].push(createdNote);
+              }
+              localNote[fileName] = createdNote;
+              let notebookName = notebooks.find(notebook => notebook.guid === createdNote.notebookGuid).name;
+              attachmentsCache[fileName] = [];
+              console.log(`${notebookName}>>${title} created successfully.`);
           }
-          localNote[fileName] = updateNote;
-          let notebookName = notebooks.find(notebook => notebook.guid === updateNote.notebookGuid).name;
-          attachmentsCache[fileName] = [];
-          return console.log(`${notebookName}>>${title} update to server successfully.`);
-        } else {
-          const createdNote = await this.createNote(meta, content, resources);
-          createdNote.resources = resources;
-          if (!notesMap[createdNote.notebookGuid]) {
-            notesMap[createdNote.notebookGuid] = [createdNote];
-          } else {
-            notesMap[createdNote.notebookGuid].push(createdNote);
-          }
-          localNote[fileName] = createdNote;
-          let notebookName = notebooks.find(notebook => notebook.guid === createdNote.notebookGuid).name;
-          attachmentsCache[fileName] = [];
-          console.log(`${notebookName}>>${title} created successfully.`);
-        }
-     }
-    } catch (err) {
-      this.wrapError(err);
-    }
-  }
-
-  // Update an exsiting note.
-  async updateNoteContent(meta, content, noteGuid) {
-    try {
-      let tagNames = meta["tags"];
-      let title = meta["title"];
-      let notebook = meta["notebook"];
-      const notebookGuid = await this.getNotebookGuid(notebook);
-      return client.updateNoteContent(noteGuid, title, content, tagNames, notebookGuid);
-
-    } catch (err) {
-     this. wrapError(err);
-    }
-  }
-
-  // Choose notebook. Used for publish.
-  async getNotebookGuid(notebook) {
-    try {
-      let notebookGuid;
-      if (notebook) {
-        let notebookLocal = notebooks.find(nb => nb.name === notebook);
-        if (notebookLocal) {
-          notebookGuid = notebookLocal.guid;
-        } else {
-          const createdNotebook = await client.createNotebook(notebook);
-          notebooks.push(createdNotebook);
-          notebookGuid = createdNotebook.guid;
-        }
-      } else {
-        const defaultNotebook = await client.getDefaultNotebook();
-        notebookGuid = defaultNotebook.guid;
       }
-      return notebookGuid;
     } catch (err) {
-      this.wrapError(err);
+        this.wrapError(err);
     }
   }
 
-  async getNoteGuid(meta) {
-      let title = meta["title"];
-      let intitle = 'intitle:' + '"' + title + '"';
-      let nguid = null;
-      let re = await client.listMyNotes(intitle);
-      let resul = re.notes;
-      let arrayLength = resul.length;
-      let i;
-      for (i = 0; i < arrayLength; i ++) {
-          if (resul[i].title == title) nguid = resul[i].guid;
-      }
-      return nguid;
-  }
+    // Update an exsiting note.
+    async updateNoteContent(meta, content, noteGuid) {
+        try {
+            let tagNames = meta["tags"];
+            let title = meta["title"];
+            let notebook = meta["notebook"];
+            const notebookGuid = await this.getNotebookGuid(notebook);
+            return client.updateNoteContent(noteGuid, title, content, tagNames, notebookGuid);
 
-  // 更新服务器上的笔记
-  async updateNoteOnServer(meta, content, resources, nguid) {
-    try {
-      let title = meta["title"];
-      let tagNames = meta["tags"];
-      let notebook = meta["notebook"];
-      const notebookGuid = await this.getNotebookGuid(notebook);
-      return client.updateNoteResources(nguid, title, content, tagNames, notebookGuid, resources || void 0);
-    } catch (err) {
-      this.wrapError(err);
+        } catch (err) {
+            this. wrapError(err);
+        }
     }
-  }
+
+    // Choose notebook. Used for publish.
+    // 根据名字查找笔记本
+    async getNotebookGuid(notebook) {
+        try {
+            let notebookGuid;
+            if (notebook) {
+                let notebookLocal = notebooks.find(nb => nb.name === notebook);
+                if (notebookLocal) {
+                    notebookGuid = notebookLocal.guid;
+                } else {
+                    const createdNotebook = await client.createNotebook(notebook);
+                    notebooks.push(createdNotebook);
+                    notebookGuid = createdNotebook.guid;
+                }
+            } else {
+                const defaultNotebook = await client.getDefaultNotebook();
+                notebookGuid = defaultNotebook.guid;
+            }
+            return notebookGuid;
+        } catch (err) {
+            this.wrapError(err);
+        }
+    }
+
+    // 查找笔记
+    async getNoteGuid(meta) {
+        let title = meta["title"];
+        let intitle = 'intitle:' + '"' + title + '"';
+        let nguid = null;
+        let re = await client.listMyNotes(intitle);
+        let resul = re.notes;
+        let arrayLength = resul.length;
+        let i;
+        for (i = 0; i < arrayLength; i ++) {
+            if (resul[i].title == title) nguid = resul[i].guid;
+        }
+        return nguid;
+    }
+
+    // 查找笔记
+    async getNoteGuidByTitle(title) {
+        let intitle = 'intitle:' + '"' + title + '"';
+        let nguid = null;
+
+        // 模糊查找
+        let re = await client.listMyNotes(intitle);
+        let resul = re.notes;
+        let arrayLength = resul.length;
+        let i;
+
+        // 筛选出，名字完全一致的笔记
+        for (i = 0; i < arrayLength; i ++) {
+            if (resul[i].title == title) nguid = resul[i].guid;
+        }
+        return nguid;
+    }
+    // 更新服务器上的笔记
+    async updateNoteOnServer(meta, content, resources, nguid) {
+        try {
+            let title = meta["title"];
+            let tagNames = meta["tags"];
+            let notebook = meta["notebook"];
+            const notebookGuid = await this.getNotebookGuid(notebook);
+            return client.updateNoteResources(nguid, title, content, tagNames, notebookGuid, resources || void 0);
+        } catch (err) {
+            this.wrapError(err);
+        }
+    }
 
     // Create an new note.
     async createNote(meta, content, resources) {
@@ -263,97 +282,97 @@ export class EverSyncClient {
             const note = await client.createNote(title, notebookGuid, content, tagNames, resources||void 0);
             return note
         } catch (err) {
-        this.wrapError(err);
+            this.wrapError(err);
         }
     }
 
 
-  // Search note.
-  async searchNote(query) {
-    try {
-      const searchResult = await client.searchNote(query);
-      const noteWithbook = searchResult.notes.map(note => {
-        let title = note["title"];
-        selectedNotebook = notebooks.find(notebook => notebook.guid === note.notebookGuid);
-        return selectedNotebook.name + ">>" + title;
-      });
-    } catch (err) {
-      this.wrapError(err);
-    }
-  }
-
-
-  // Open search result note. (notebook >> note)
-  async openSearchResult(noteWithbook, notes) {
-    try {
-      let index = noteWithbook.indexOf(">>");
-      let searchNoteResult = noteWithbook.substring(index + 2);
-      let chooseNote = notes.find(note => note.title === searchNoteResult);
-      const note = await client.getNoteContent(chooseNote.guid);
-      const content = note.content;
-      console.log("--------------- content=\n" + content)
-
-      //await cacheAndOpenNote(note, doc, content);
-    } catch (err) {
-      this.wrapError(err);
+    // Search note.
+    async searchNote(query) {
+        try {
+            const searchResult = await client.searchNote(query);
+            const noteWithbook = searchResult.notes.map(note => {
+                let title = note["title"];
+                selectedNotebook = notebooks.find(notebook => notebook.guid === note.notebookGuid);
+                return selectedNotebook.name + ">>" + title;
+            });
+        } catch (err) {
+            this.wrapError(err);
+        }
     }
 
-  }
+
+    // Open search result note. (notebook >> note)
+    async openSearchResult(noteWithbook, notes) {
+        try {
+            let index = noteWithbook.indexOf(">>");
+            let searchNoteResult = noteWithbook.substring(index + 2);
+            let chooseNote = notes.find(note => note.title === searchNoteResult);
+            const note = await client.getNoteContent(chooseNote.guid);
+            const content = note.content;
+            console.log("--------------- content=\n" + content)
+
+            //await cacheAndOpenNote(note, doc, content);
+        } catch (err) {
+            this.wrapError(err);
+        }
+
+    }
 
     // 获取笔记内容
     async getNoteContent(noteGuid){
         try {
-          const note = await client.getNoteContent(noteGuid);
-          return note
+            const note = await client.getNoteContent(noteGuid);
+            return note
         } catch (err) {
-          this.wrapError(err);
+            this.wrapError(err);
         }
     }
 
-  getNoteLink(noteGuid) {
-    const token = config.token;
-    if (token && noteGuid) {
-      let userInfo = token.split(":");
-      let shardId = userInfo[0].substring(2);
-      let userId = parseInt(userInfo[1].substring(2), 16);
-      return `evernote:///view/${userId}/${shardId}/${noteGuid}/${noteGuid}/`;
+    getNoteLink(noteGuid) {
+        const token = config.token;
+        if (token && noteGuid) {
+            let userInfo = token.split(":");
+            let shardId = userInfo[0].substring(2);
+            let userId = parseInt(userInfo[1].substring(2), 16);
+            return `evernote:///view/${userId}/${shardId}/${noteGuid}/${noteGuid}/`;
+        }
+        return "";
     }
-    return "";
-  }
 
-  async openNoteInBrowser(noteGuid) {
+    async openNoteInBrowser(noteGuid) {
         const domain = config.noteStoreUrl.slice(0, -9);
         const url = util.format(domain + "view/%s", noteGuid);
         console.log("url:", url)
-  }
-
-
-  // open evernote dev page to help you configure.
-  async openDevPage() {
-    try {
-        console.log("https://app.yinxiang.com/api/DeveloperToken.action");
-    
-    } catch (err) {
-      this.wrapError(err)
-    }
-  }
-
-  wrapError(error) {
-    if (!error) {
-      return;
     }
 
-    let errMsg;
-    if (error.statusCode && error.statusMessage) {
-      errMsg = `Http Error: ${error.statusCode}- ${error.statusMessage}, Check your ever config please.`;
-    } else if (error.errorCode && error.parameter) {
-      errMsg = `Evernote Error: ${error.errorCode} - ${error.parameter}`;
-    } else {
-      errMsg = "Unexpected Error: " + JSON.stringify(error);
+
+    // open evernote dev page to help you configure.
+    async openDevPage() {
+        try {
+            console.log("https://app.yinxiang.com/api/DeveloperToken.action");
+
+        } catch (err) {
+            this.wrapError(err)
+        }
     }
 
-    console.log(errMsg);
-  }
+    wrapError(error) {
+        if (!error) {
+            return;
+        }
+
+        let errMsg;
+        if (error.statusCode && error.statusMessage) {
+            errMsg = `Http Error: ${error.statusCode}- ${error.statusMessage}, Check your ever config please.`;
+        } else if (error.errorCode && error.parameter) {
+            errMsg = `Evernote Error: ${error.errorCode} - ${error.parameter}`;
+        } else {
+            errMsg = "Unexpected Error: " + JSON.stringify(error);
+        }
+
+        console.log(errMsg);
+    }
 
 
 }
