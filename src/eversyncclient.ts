@@ -191,7 +191,8 @@ export class EverSyncClient {
             let title = meta["title"];
             let notebook = meta["notebook"];
             const notebookGuid = await this.getNotebookGuid(notebook);
-            return client.updateNoteContent(noteGuid, title, content, tagNames, notebookGuid);
+            let note = await client.updateNoteContent(noteGuid, title, content, tagNames, notebookGuid);
+            return note
 
         } catch (err) {
             this. wrapError(err);
