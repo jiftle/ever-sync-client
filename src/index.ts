@@ -15,17 +15,19 @@ let user = "Jane User";
 console.log(greeter(user));
 
 // 时间戳 转为 字符串
-// let d = moment(1575801036000).format("YYYY-MM-DD HH:mm:ss");
-// console.log(d);
+let d = moment(1575801036000).format("YYYY-MM-DD HH:mm:ss");
+console.log(d);
 
 const converter = new Converter({});
 let markdown_update = "你好啊我的Markdown笔记,更新内容成功了，祝贺我吧，打小孩了\n，啊啊啊，时间戳转字符串，我要去做饭了";
 
-// 转换笔记内容为印象笔记的专用格式
-converter.toEnml(markdown_update).then(function(enml){
-    console.log("--------- enml ----------")
-    console.log(enml);
-});
+markdown_update ="# 印象笔记同步测试\n\n## 简介\n- 测试同步功能，稍安勿躁\n- 还不错吧\n";
+
+ // 转换笔记内容为印象笔记的专用格式
+ converter.toEnml(markdown_update).then(function(enml){
+     console.log("--------- enml ----------")
+     console.log(enml);
+ });
 
 
 // 
