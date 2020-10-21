@@ -8,10 +8,13 @@ let attributes = {};
 
 // 类定义
 export class EvernoteClient {
+    // 定义成员变量
   noteStore;
+
+    // 构造函数
   constructor(token, noteStoreUrl) {
     if (!token) {
-      console.log("missing token in configuration");
+      console.log("missing token in configuration，token丢失");
     }
     const options = {
       token

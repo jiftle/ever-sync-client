@@ -44,6 +44,7 @@ const converter = new Converter({});
 // doc -> [{filepath: attachment}]
 const attachmentsCache = {};
 
+// 参数配置
 let config = {
   token : "",
   noteStoreUrl : ""
