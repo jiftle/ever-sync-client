@@ -1,4 +1,7 @@
+# dirs
 out/**
 build
 node_modules/**
 
+# files
+package-lock.json

@@ -15,3 +15,14 @@
 ## 运行
 
 node index.js
+
+## 路线图
+
+形成独立的客户端，最终封装成为vim的插件
+https://github.com/jiftle/vim-jiftle-evernote-sync
+
+
+## 开发这个客户端的目的
+
+- 解决同步印象笔记，需要打开vscode的问题
+- 学习写type script的语法
