@@ -1,22 +1,22 @@
 import * as buffer from "buffer";
-import Converter from "./converterplus";
+import Converter from "./utils/converterplus";
 import * as _ from "lodash";
 import * as open from "opener";
 import * as util from "util";
 import * as path from "path";
 import {
-  hash,
-  guessMime
-} from "./myutil";
-import fs from "./file";
+    hash,
+    guessMime
+} from "./utils/myutil";
+import fs from "./utils/file";
 import * as evernote from "evernote";
 import {
-  EvernoteClient
-} from "./everapi";
+    EvernoteClient
+} from "./api/everapi";
 
 
 //const ATTACHMENT_FOLDER_PATH = config.attachmentsFolder || path.join(__dirname, "../../attachments");
-const ATTACHMENT_FOLDER_PATH =  path.join("", "../../attachments");
+const ATTACHMENT_FOLDER_PATH = path.join("", "../../attachments");
 const ATTACHMENT_SOURCE_LOCAL = 0;
 const ATTACHMENT_SOURCE_SERVER = 1;
 const TIP_BACK = "back...";
@@ -31,13 +31,13 @@ notebook: %s
 
 `;
 
-let  notebooks;
+let notebooks;
 let notesMap;
 let selectedNotebook;
 const localNote = {};
-let showTips;
+//let showTips;
 let client;
-const serverResourcesCache = {};
+//const serverResourcesCache = {};
 const tagCache = {};
 const converter = new Converter({});
 
@@ -46,144 +46,156 @@ const attachmentsCache = {};
 
 // 参数配置
 let config = {
-  token : "",
-  noteStoreUrl : ""
+    token: "",
+    noteStoreUrl: ""
 };
 
 // 类定义
 export class EverSyncClient {
-  
 
-  // Synchronize evernote account. For metadata.
-  async syncAccount(token,noteStoreUrl) {
-      config.token = token;
-      config.noteStoreUrl = noteStoreUrl;
-    try {
-      // lazy initilation.
-      client = new EvernoteClient(config.token, config.noteStoreUrl);
 
-      // 保存标签信息到本地
-      const tags = await client.listTags();
-      tags.forEach(tag => tagCache[tag.guid] = tag.name);
+    // 同步印象笔记账号，元数据
+    // Synchronize evernote account. For metadata.
+    async syncAccount(token, noteStoreUrl) {
+        config.token = token;
+        config.noteStoreUrl = noteStoreUrl;
 
-      // 保存笔记本信息到本地
-      notebooks = await client.listNotebooks();
-      let promises = notebooks.map(notebook => client.listAllNoteMetadatas(notebook.guid));
-      const allMetas = await Promise.all(promises);
-      const notes = _.flattenDeep(allMetas.map((meta: evernote.Types.Note) => meta.notes));
-      notesMap = _.groupBy(notes, "notebookGuid");
+        try {
+            // 懒加载
+            // lazy initilation.
+            client = new EvernoteClient(config.token, config.noteStoreUrl);
 
-      console.log("Synchronizing succeeded!", 1000);
-    } catch (err) {
-      this.wrapError(err);
-    }
-  }
+            // 保存标签信息到本地, awit 等待执行完毕，返回
+            const tags = await client.listTags();
+            tags.forEach(tag => tagCache[tag.guid] = tag.name);
 
-  // List all notebooks name.
-  listNotebooks() {
-    try {
-      return notebooks.map(notebook => notebook.name);
-    } catch (err) {
-      this.wrapError(err);
-    }
+            // 保存笔记本信息到本地
+            notebooks = await client.listNotebooks();
 
-  }
+            // 返回结果 promises
+            let promises = notebooks.map(notebook => client.listAllNoteMetadatas(notebook.guid));
 
-  // List notes in the notebook. (200 limits.)
-  listNotes(notebook) {
-      //    console.log(notebooks);
-    selectedNotebook = notebooks.find(nb => nb.name === notebook);
-      //console.log(selectedNotebook);
-      let noteLists = notesMap[selectedNotebook.guid];
-      return noteLists;
-  }
+            // 以上3个await 执行结果 Promise.all
+            const allMetas = await Promise.all(promises);
 
-  //  exact text Metadata by convention 分析文件头得到元数据
-  exactMetadata(text) {
-    let metadata = {};
-    let content = text;
-    if (_.startsWith(text, "---")) {
-      let match = METADATA_PATTERN.exec(text);
-      if (match) {
-        content = text.substring(match[0].trim().length).replace(/^\s+/, "");
-        let metadataStr = match[1].trim();
-        let metaArray = metadataStr.split("\n");
-        metaArray.forEach(value => {
-          let sep = value.indexOf(":");
-          metadata[value.substring(0, sep).trim()] = value.substring(sep+1).trim();
-        });
-        if (metadata["tags"]) {
-          let tagStr = metadata["tags"];
-          metadata["tags"] = tagStr.split(",").map(value => value.trim());
+            // 遍历笔记本
+            const notes = _.flattenDeep(allMetas.map((meta: evernote.Types.Note) => meta.notes));
+            notesMap = _.groupBy(notes, "notebookGuid");
+
+            console.log("账号同步成功，数据(标签、笔记本、元数据)已经缓存到本地. Synchronizing succeeded!", 1000);
+        } catch (err) {
+            this.wrapError(err);
         }
-      }
     }
-    return {
-      "metadata": metadata,
-      "content": content
-    };
-  }
 
-  genMetaHeader(title, tags, notebook) {
-    return util.format(METADATA_HEADER, title, tags.join(","), notebook);
-  }
+    // 列出所有的笔记本
+    // List all notebooks name.
+    listNotebooks() {
+        try {
+            return notebooks.map(notebook => notebook.name);
+        } catch (err) {
+            this.wrapError(err);
+        }
 
-
-
-  // Publish note to Evernote Server. with resources.
-  async publishNote() {
-    try {
-      let NoteText = "";
-      let result = this.exactMetadata(NoteText);
-      let content = await converter.toEnml(result.content);
-      let meta = result.metadata;
-      let title = meta["title"];
-      let resources;
-
-      let fileName = title;
-      // 服务器上已经存在同名文件
-      let bNoteIsExisted = false;
-      if (bNoteIsExisted) {
-        // update the note.
-        let updatedNote;
-        let noteGuid = localNote[fileName].guid;
-        const noteResources = await client.getNoteResources(noteGuid);
-          updatedNote = await this.updateNoteContent(meta, content, noteGuid);
-          let notebookName = notebooks.find(notebook => notebook.guid === updatedNote.notebookGuid).name;
-          // attachments cache should be removed.
-          console.log(`${notebookName}>>${title} updated successfully.`);
-      } else {
-          const nguid = await this.getNoteGuid(meta);
-          if (nguid) {
-              const updateNote = await this.updateNoteOnServer(meta, content, resources, nguid);
-              updateNote.resources = resources;
-              if (!notesMap[updateNote.notebookGuid]) {
-                  notesMap[updateNote.notebookGuid] = [updateNote];
-              } else {
-                  notesMap[updateNote.notebookGuid].push(updateNote);
-              }
-              localNote[fileName] = updateNote;
-              let notebookName = notebooks.find(notebook => notebook.guid === updateNote.notebookGuid).name;
-              attachmentsCache[fileName] = [];
-              return console.log(`${notebookName}>>${title} update to server successfully.`);
-          } else {
-              const createdNote = await this.createNote(meta, content, resources);
-              createdNote.resources = resources;
-              if (!notesMap[createdNote.notebookGuid]) {
-                  notesMap[createdNote.notebookGuid] = [createdNote];
-              } else {
-                  notesMap[createdNote.notebookGuid].push(createdNote);
-              }
-              localNote[fileName] = createdNote;
-              let notebookName = notebooks.find(notebook => notebook.guid === createdNote.notebookGuid).name;
-              attachmentsCache[fileName] = [];
-              console.log(`${notebookName}>>${title} created successfully.`);
-          }
-      }
-    } catch (err) {
-        this.wrapError(err);
     }
-  }
+
+    // List notes in the notebook. (200 limits.)
+    listNotes(notebook) {
+        //    console.log(notebooks);
+        selectedNotebook = notebooks.find(nb => nb.name === notebook);
+        //console.log(selectedNotebook);
+        let noteLists = notesMap[selectedNotebook.guid];
+        return noteLists;
+    }
+
+    //  exact text Metadata by convention 分析文件头得到元数据
+    exactMetadata(text) {
+        let metadata = {};
+        let content = text;
+        if (_.startsWith(text, "---")) {
+            let match = METADATA_PATTERN.exec(text);
+            if (match) {
+                content = text.substring(match[0].trim().length).replace(/^\s+/, "");
+                let metadataStr = match[1].trim();
+                let metaArray = metadataStr.split("\n");
+                metaArray.forEach(value => {
+                    let sep = value.indexOf(":");
+                    metadata[value.substring(0, sep).trim()] = value.substring(sep + 1).trim();
+                });
+                if (metadata["tags"]) {
+                    let tagStr = metadata["tags"];
+                    metadata["tags"] = tagStr.split(",").map(value => value.trim());
+                }
+            }
+        }
+        return {
+            "metadata": metadata,
+            "content": content
+        };
+    }
+
+    genMetaHeader(title, tags, notebook) {
+        return util.format(METADATA_HEADER, title, tags.join(","), notebook);
+    }
+
+
+
+    // Publish note to Evernote Server. with resources.
+    async publishNote() {
+        try {
+            let NoteText = "";
+            let result = this.exactMetadata(NoteText);
+            let content = await converter.toEnml(result.content);
+            let meta = result.metadata;
+            let title = meta["title"];
+            let resources;
+
+            let fileName = title;
+            // 服务器上已经存在同名文件
+            let bNoteIsExisted = false;
+            if (bNoteIsExisted) {
+                // update the note.
+                let updatedNote;
+                let noteGuid = localNote[fileName].guid;
+
+                const noteResources = await client.getNoteResources(noteGuid);
+                updatedNote = await this.updateNoteContent(meta, content, noteGuid);
+
+                let notebookName = notebooks.find(notebook => notebook.guid === updatedNote.notebookGuid).name;
+                // attachments cache should be removed.
+                console.log(`${notebookName}>>${title} updated successfully.`);
+            } else {
+                const nguid = await this.getNoteGuid(meta);
+                if (nguid) {
+                    const updateNote = await this.updateNoteOnServer(meta, content, resources, nguid);
+                    updateNote.resources = resources;
+                    if (!notesMap[updateNote.notebookGuid]) {
+                        notesMap[updateNote.notebookGuid] = [updateNote];
+                    } else {
+                        notesMap[updateNote.notebookGuid].push(updateNote);
+                    }
+                    localNote[fileName] = updateNote;
+                    let notebookName = notebooks.find(notebook => notebook.guid === updateNote.notebookGuid).name;
+                    attachmentsCache[fileName] = [];
+                    return console.log(`${notebookName}>>${title} update to server successfully.`);
+                } else {
+                    const createdNote = await this.createNote(meta, content, resources);
+                    createdNote.resources = resources;
+                    if (!notesMap[createdNote.notebookGuid]) {
+                        notesMap[createdNote.notebookGuid] = [createdNote];
+                    } else {
+                        notesMap[createdNote.notebookGuid].push(createdNote);
+                    }
+                    localNote[fileName] = createdNote;
+                    let notebookName = notebooks.find(notebook => notebook.guid === createdNote.notebookGuid).name;
+                    attachmentsCache[fileName] = [];
+                    console.log(`${notebookName}>>${title} created successfully.`);
+                }
+            }
+        } catch (err) {
+            this.wrapError(err);
+        }
+    }
 
     // Update an exsiting note.
     async updateNoteContent(meta, content, noteGuid) {
@@ -196,7 +208,7 @@ export class EverSyncClient {
             return note
 
         } catch (err) {
-            this. wrapError(err);
+            this.wrapError(err);
         }
     }
 
@@ -233,7 +245,7 @@ export class EverSyncClient {
         let resul = re.notes;
         let arrayLength = resul.length;
         let i;
-        for (i = 0; i < arrayLength; i ++) {
+        for (i = 0; i < arrayLength; i++) {
             if (resul[i].title == title) nguid = resul[i].guid;
         }
         return nguid;
@@ -251,7 +263,7 @@ export class EverSyncClient {
         let i;
 
         // 筛选出，名字完全一致的笔记
-        for (i = 0; i < arrayLength; i ++) {
+        for (i = 0; i < arrayLength; i++) {
             if (resul[i].title == title) nguid = resul[i].guid;
         }
         return nguid;
@@ -281,7 +293,7 @@ export class EverSyncClient {
             const notebookGuid = await this.getNotebookGuid(notebook);
 
             console.log("notebook guid =" + notebookGuid);
-            const note = await client.createNote(title, notebookGuid, content, tagNames, resources||void 0);
+            const note = await client.createNote(title, notebookGuid, content, tagNames, resources || void 0);
             return note
         } catch (err) {
             this.wrapError(err);
@@ -298,6 +310,7 @@ export class EverSyncClient {
                 selectedNotebook = notebooks.find(notebook => notebook.guid === note.notebookGuid);
                 return selectedNotebook.name + ">>" + title;
             });
+            console.log(noteWithbook);
         } catch (err) {
             this.wrapError(err);
         }
@@ -322,7 +335,7 @@ export class EverSyncClient {
     }
 
     // 获取笔记内容
-    async getNoteContent(noteGuid){
+    async getNoteContent(noteGuid) {
         try {
             const note = await client.getNoteContent(noteGuid);
             return note

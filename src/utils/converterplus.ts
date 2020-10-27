@@ -8,9 +8,10 @@ import * as mdEmoji from "markdown-it-emoji";
 import * as mdEnmlTodo from "markdown-it-enml-todo";
 import markdownItGithubToc from "markdown-it-github-toc";
 import * as path from "path";
-import fs from "./file";
 import * as toMarkdown from "to-markdown";
 import * as util from "util";
+
+import fs from "./file";
 
 // 配置
 let config = {

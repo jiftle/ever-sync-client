@@ -1,30 +1,7 @@
 import {
     EverSyncClient
-} from "./eversyncclient";
+} from "../eversyncclient";
 
-//import Converter from "../utils/converterplus";
-//import * as moment from 'moment';
-//
-//
-//// 时间戳 转为 字符串
-//let d = moment(1575801036000).format("YYYY-MM-DD HH:mm:ss");
-//console.log(d);
-//
-//const converter = new Converter({});
-//let markdown_update = "你好啊我的Markdown笔记,更新内容成功了，祝贺我吧，打小孩了\n，啊啊啊，时间戳转字符串，我要去做饭了";
-//
-//markdown_update ="# 印象笔记同步测试\n\n## 简介\n- 测试同步功能，稍安勿躁\n- 还不错吧\n";
-//
-// // 转换笔记内容为印象笔记的专用格式
-// converter.toEnml(markdown_update).then(function(enml){
-//     console.log("--------- enml ----------")
-//     console.log(enml);
-// });
-
-
-
-//let markdown = "# 你好啊，我的Markdown笔记\n\n## 二级标题\n- 来自EverSynClient";
-let markdown;
 
 
 //--------------------- 单元测试,测试用例 ----------------------[
@@ -38,10 +15,11 @@ let markdown;
 
 //参数配置
 let config = {
-    // token : "S=s58:U=d1c0c7:E=16f03ef2457:C=16edfe29da8:P=1cd:A=en-devtoken:V=2:H=f6ba1e4118af4731e11ea132cf1257ce",
     token : "S=s58:U=d1c0c7:E=1756fb9a9d4:C=1754bad25c0:P=1cd:A=en-devtoken:V=2:H=82e63306ee7eba1920feab76d9e4f1e3",
     noteStoreUrl : "https://app.yinxiang.com/shard/s58/notestore"
 };
+
+// let 定义局部变量
 // 调用客户端
 let client = new EverSyncClient();
 
