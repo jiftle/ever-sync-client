@@ -14,6 +14,8 @@ import {
     EvernoteClient
 } from "./api/everapi";
 
+// token 申请地址
+// https://app.yinxiang.com/api/DeveloperToken.action
 
 //const ATTACHMENT_FOLDER_PATH = config.attachmentsFolder || path.join(__dirname, "../../attachments");
 const ATTACHMENT_FOLDER_PATH = path.join("", "../../attachments");
@@ -31,11 +33,15 @@ notebook: %s
 
 `;
 
-let notebooks;
-let notesMap;
-let selectedNotebook;
+// ------------------ 笔记本，本地缓存 ----------------
+let m_notebooks;
+let m_notesMap;
+let m_selectedNotebook;
 const localNote = {};
+
 //let showTips;
+//
+//  ------------ 客户端 -----------
 let client;
 //const serverResourcesCache = {};
 const tagCache = {};
@@ -64,23 +70,56 @@ export class EverSyncClient {
             // 懒加载
             // lazy initilation.
             client = new EvernoteClient(config.token, config.noteStoreUrl);
+            // console.log(client);
+            if (client.errorCode != null) {
+                console.log("--**-- 调用失败");
+            }
+        
+            console.log("--**-- 1");
+           
+        try {
+            let curLoginStatus = await client.getCurLoginStatus();
+            console.log("--- 登录状态: ", curLoginStatus);
+            console.log("--**-- 2");
+            
+        } catch (error) {
+            console.log(" (X)|--> 登录失败，错误信息: \n", error);
+            return null;
+        }
 
+
+            console.log("--**-- 3");
             // 保存标签信息到本地, awit 等待执行完毕，返回
             const tags = await client.listTags();
-            tags.forEach(tag => tagCache[tag.guid] = tag.name);
+            console.log("----- tags: \n", tags);
+            tags.forEach(
+                tag => tagCache[tag.guid] = tag.name
+            );
 
             // 保存笔记本信息到本地
-            notebooks = await client.listNotebooks();
+            m_notebooks = await client.listNotebooks();
+            // console.log("-------------------- notebooks ------------------");
+            // console.log(m_notebooks);
 
             // 返回结果 promises
-            let promises = notebooks.map(notebook => client.listAllNoteMetadatas(notebook.guid));
+            let promises = m_notebooks.map(
+                notebook => client.listAllNoteMetadatas(notebook.guid)
+            );
 
             // 以上3个await 执行结果 Promise.all
+            // const allMetas = await Promise.all(promises);
             const allMetas = await Promise.all(promises);
 
             // 遍历笔记本
-            const notes = _.flattenDeep(allMetas.map((meta: evernote.Types.Note) => meta.notes));
-            notesMap = _.groupBy(notes, "notebookGuid");
+            const notes = _.flattenDeep(
+                allMetas.map(
+                    (meta: evernote.Types.Note) => meta.notes
+                )
+            );
+            // console.log("-------------------- notes,笔记本内的笔记 ------------------");
+            // console.log(notes);
+
+            m_notesMap = _.groupBy(notes, "notebookGuid");
 
             console.log("账号同步成功，数据(标签、笔记本、元数据)已经缓存到本地. Synchronizing succeeded!", 1000);
         } catch (err) {
@@ -92,7 +131,15 @@ export class EverSyncClient {
     // List all notebooks name.
     listNotebooks() {
         try {
-            return notebooks.map(notebook => notebook.name);
+            // => 箭头函数
+            let notebooks = m_notebooks.map(
+                // => 箭头函数，返回值需要使用小括号括起来
+                notebook => ({
+                    name: notebook.name,
+                    guid: notebook.guid
+                })
+            );
+            return notebooks;
         } catch (err) {
             this.wrapError(err);
         }
@@ -100,11 +147,21 @@ export class EverSyncClient {
     }
 
     // List notes in the notebook. (200 limits.)
+    // 列出笔记
     listNotes(notebook) {
-        //    console.log(notebooks);
-        selectedNotebook = notebooks.find(nb => nb.name === notebook);
-        //console.log(selectedNotebook);
-        let noteLists = notesMap[selectedNotebook.guid];
+        //        console.log("----------- ListNotes , 入参");
+        //        console.log(notebook);
+
+        m_selectedNotebook = m_notebooks.find(
+            notebook => notebook.name
+        );
+
+        //        console.log("----------- 选中笔记本");
+        //        console.log(m_selectedNotebook);
+        let noteLists = m_notesMap[m_selectedNotebook.guid];
+        //        console.log("----------- noteLists");
+        //        console.log(noteLists);
+
         return noteLists;
     }
 
@@ -337,8 +394,8 @@ export class EverSyncClient {
     // 获取笔记内容
     async getNoteContent(noteGuid) {
         try {
-            const note = await client.getNoteContent(noteGuid);
-            return note
+            const noteContent = await client.getNoteContent(noteGuid);
+            return noteContent
         } catch (err) {
             this.wrapError(err);
         }
