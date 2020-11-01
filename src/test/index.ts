@@ -2,6 +2,7 @@ import {
     EverSyncClient
 } from "../eversyncclient";
 
+import TimeUtil from "../utils/timeutil";
 
 
 //--------------------- 单元测试,测试用例 ----------------------[
@@ -38,9 +39,16 @@ client.syncAccount(config.token, config.noteStoreUrl).then(function () {
     console.log("------------ 第1个笔记 --------- \n", note);
 
     // 笔记本内容
-    let noteContent = client.getNoteContent(notes[0]);
-    console.log("----------- 笔记名称：", note.name);
-    console.log("----------- 笔记内容：\n", noteContent);
+    client.getNoteContent(note.guid).then(function(note){
+        console.log("--guid:\n", note.guid);
+        console.log("--标题:\n", note.title);
+        console.log("--创建时间:\n", TimeUtil.TimeStampToString(note.created));
+        console.log("--更新时间:\n", TimeUtil.TimeStampToString(note.updated));
+        console.log("--文件大小:\n", note.contentLength);
+        console.log("--笔记本guid:\n", note.notebookGuid);
+        console.log("--内容:\n", note.content);
+            
+    });
 
 //     for (var i in notebooks) {
 //         console.log(notebooks[i])

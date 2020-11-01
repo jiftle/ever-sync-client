@@ -394,7 +394,10 @@ export class EverSyncClient {
     // 获取笔记内容
     async getNoteContent(noteGuid) {
         try {
+            console.log("|--> 笔记GUID: ",noteGuid);
             const noteContent = await client.getNoteContent(noteGuid);
+            console.log("|--> 笔记, ", noteContent);
+
             return noteContent
         } catch (err) {
             this.wrapError(err);
