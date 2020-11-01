@@ -50,6 +50,7 @@ export class EvernoteClient {
       //      latestUpdateCount = currentState.getUpdateCount();
       //      console.log("latestUpdateCount = ", latestUpdateCount);
       //  }
+        return currentState;
     }
 
     // 列出最近笔记

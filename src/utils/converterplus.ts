@@ -15,10 +15,10 @@ import fs from "./file";
 
 // 配置
 let config = {
-    fontFamily : ["宋体"],
-    fontSize : "16px",
+    fontFamily: ["宋体"],
+    fontSize: "16px",
     codeFontFamily: ["monaco"],
-    codeFontSize : "14px",
+    codeFontSize: "14px",
 };
 
 // Make this configurable
@@ -49,11 +49,15 @@ const OVERRIDE_CODE_FONT_SIZE = `
   font-size: %s !important;
 }`;
 
-
+// 转换器
 export default class Converter {
+    // 成员变量
     md;
     styles;
+
+    // 构造器
     constructor(options = {}) {
+        console.log("-------- 构造函数 -----------");
         const md = new MarkdownIt({
             html: true,
             linkify: true,
@@ -84,99 +88,124 @@ export default class Converter {
             const result = inlineCodeRule.call(md, ...args);
             return result.replace("<code>", '<code class="inline">');
         };
+
+        // -------- 成员变量初始化
         this.md = md;
-        this.initStyles().then(data => this.styles = data).catch(e => console.log(e));
+        //console.log("----- this.md: \n", this.md);
+        this.initStyles().then(
+            function (data) {
+                this.styles = data;
+                console.log("data:\n", data);
+                console.log("this.style: \n", this.styles);
+            }
+            //data => this.styles = data;
+        ).catch(e => console.log(e));
+        console.log("----- this.styles: \n", this.styles);
     }
 
-    initStyles() {
-        console.log("---> MARKDOWN_THEME_PATH: %s",MARKDOWN_THEME_PATH);
-        console.log("---> HIGHLIGHT_THEME_PATH: %s",HIGHLIGHT_THEME_PATH);
-        let highlightTheme =  DEFAULT_HIGHLIGHT_THEME;
-        // TODO: customize Mevernote rendering by input markdown theme.
+    // 初始化，样式层叠表
+    async initStyles() {
+        // markdown 主题
         const markdownTheme = "github.css";
+        // 语法高亮，主题，和编程语言相关
+        let highlightTheme = DEFAULT_HIGHLIGHT_THEME;
+
+        // TODO: customize Evernote rendering by input markdown theme.
+        // 使用指定的Markdown样式主题，渲染
         let formatTheme = highlightTheme.replace(/\s+/g, "-");
+
+        let markdown_theme = path.join(MARKDOWN_THEME_PATH, markdownTheme);
+        let highlight_theme = path.join(HIGHLIGHT_THEME_PATH, `${formatTheme}.css`);
+        console.log("func: initStyles--| markdown_theme: ", markdown_theme);
+        console.log("func: initStyles--| highlight_theme: ", highlight_theme);
+
         return Promise.all([
             // TODO: read to the memory, instead of IO each time.
-            fs.readFileAsync(path.join(MARKDOWN_THEME_PATH, markdownTheme)),
+            fs.readFileAsync(markdown_theme),
             // TODO: read config css here and cover the default one.
-            fs.readFileAsync(path.join(HIGHLIGHT_THEME_PATH, `${formatTheme}.css`))
+            fs.readFileAsync(highlight_theme)
         ])
     }
 
 
     // 内容转化为印象笔记专用的格式
     async toEnml(markcontent) {
-      console.log("markcontent:\n" + markcontent)
-        // 首先转化为HTML格式
-        const html = await this.toHtml(markcontent);
-      console.log("markcontent-html:\n" + html)
+        console.log("Markdown原文:\n" + markcontent)
+        let base64_str = Buffer.from(markcontent, "utf-8").toString("base64");
+        console.log("Markdown-Base64:\n" + base64_str);
 
-        // 加入专用的笔记头
+        // 1. 首先转化为HTML格式
+        const html_str = await this.toHtml(markcontent);
+        console.log("markcontent-html:\n" + html_str);
+
+        // 2-1. 加入专用的笔记头
         let enml = '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd"><en-note>';
         enml += "<!--" + MAGIC_SPELL;
-        
-        // 笔记内容转化为BASE64格式
-        enml += Buffer.from(markcontent, "utf-8").toString("base64");
 
+        // 3. 笔记内容转化为BASE64格式
+        enml += base64_str;
+
+        // 2-2. 加入专用的笔记头
         enml += MAGIC_SPELL + "-->";
-        enml += html;
+
+        enml += html_str;
         enml += "</en-note>";
 
-      console.log("enml: \n" + enml)
+        console.log("完整的enml: \n" + enml)
         return enml;
     }
 
+
     // 转换为HTML
     async toHtml(markcontent) {
-        console.log("--------- in -----------")
-        console.log(markcontent)
+        console.log("func: toHtml--------- in -----------")
         const tokens = this.md.parse(markcontent, {});
-        //console.log("--------- parse ok -----------,tokens=", tokens)
+        //console.log("func: toHtml--------- parse ok -----------,tokens=", tokens)
+
         const html = this.md.renderer.render(tokens, this.md.options);
-        console.log(html)
-        console.log("--------- load starting -----------")
+        console.log("func: toHtml-------渲染后的Html:\n", html);
+
         const $ = cheerio.load(html);
         await this.processStyle($);
-        console.log("--------- style is process ok -----------")
-        console.log($.xml())
-        return $.xml();
+
+        let xml_str = $.xml();
+        console.log("func: toHtml--------- 处理完样式后,xml:\n", xml_str);
+        return xml_str;
     }
 
     // 处理样式
     async processStyle($) {
-        console.log("--------------开始处理样式表css")
+        console.log("func: processStyle--------------开始处理样式表css")
+        // 处理css样式层叠表
         //console.log($)
         const styleHtml = this.customizeCss($);
-        console.log("---> styleHtml")
-        console.log("styleHtml")
-        $.root().html(styleHtml);
-        console.log("$root().html ---end")
+        console.log("func: processStyle---> styleHtml:\n", styleHtml);
+        //$.root().html(styleHtml);
+        //console.log("func: processStyle-----$root().html ---end")
 
-        // Change html classes to inline styles
-        const inlineStyleHtml = await inlineCss($.html(), {
-            url: "/",
-            removeStyleTags: true,
-            removeHtmlSelectors: true,
-        });
-        console.log("---Change html classes to inline styles---in")
-        $.root().html(inlineStyleHtml);
-        console.log("---Change html classes to inline styles---out")
-        $("en-todo").removeAttr("style");
-        console.log("---en-todo --end")
+        //// Change html classes to inline styles
+        //// css样式表，存储到html内部
+        //const inlineStyleHtml = await inlineCss($.html(), {
+        //url: "/",
+        //removeStyleTags: true,
+        //removeHtmlSelectors: true,
+        //});
+        //console.log("---Change html classes to inline styles---in")
+        //$.root().html(inlineStyleHtml);
+        //console.log("---Change html classes to inline styles---out")
+        //$("en-todo").removeAttr("style");
+        //console.log("---en-todo --end")
     }
 
     // 自定义CSS样式，层叠样式表
     async customizeCss($) {
-        //const config = vscode.workspace.getConfiguration("evermonkey");
         let fontFamily;
         let fontSize;
         let codeFontFamily;
         let codeFontSize;
-        console.log("------------ 自定义样式,---------(1----------")
         if (config.fontFamily) {
             fontFamily = util.format(OVERRIDE_FONT_FAMILY, config.fontFamily.join(","));
         }
-        console.log("------------ 自定义样式,---------(2----------")
         if (config.fontSize) {
             fontSize = util.format(OVERRIDE_FONT_SIZE, config.fontSize);
         }
@@ -186,8 +215,12 @@ export default class Converter {
         if (config.codeFontSize) {
             codeFontSize = util.format(OVERRIDE_CODE_FONT_SIZE, config.codeFontSize);
         }
-        return `<style>${this.styles.join("")}${fontFamily}${fontSize}${codeFontFamily}${codeFontSize}</style>` +
+
+        console.log("func: customizeCss|--- this.styles: \n", this.styles);
+        let ret = `<style>${this.styles.join("")}${fontFamily}${fontSize}${codeFontFamily}${codeFontSize}</style>` +
             `<div class="markdown-body">${$.html()}</div>`;
+
+        return ret;
     }
 
     toMd(enml) {
@@ -219,5 +252,13 @@ export default class Converter {
             .replace(/<en-todo\s*\/?>/g, '[ ] ')
             .replace(/<\/en-todo>/g, '');
     }
-
 }
+
+//---------------------- 单元测试代码 ------------------------
+let markdown = "你好啊我的Markdown笔记";
+
+const converter = new Converter({});
+// 转换笔记内容为印象笔记的专用格式
+converter.toEnml(markdown).then(function (enml) {
+    console.log(enml);
+});

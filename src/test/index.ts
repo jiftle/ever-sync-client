@@ -24,11 +24,12 @@ let config = {
 // 调用客户端
 let client = new EverSyncClient();
 
+// 1. 同步账号信息，包括笔记本，笔记  --ok
 // 登录
 client.syncAccount(config.token, config.noteStoreUrl).then(function (result) {
     //console.log("同步结果: ", result);
     if(result == false){
-        console.log("登录失败, \nconfig:\n", config);
+        console.log("印象笔记登录失败, \nconfig:\n", config);
         return;
     }
 
@@ -52,18 +53,8 @@ client.syncAccount(config.token, config.noteStoreUrl).then(function (result) {
         console.log("--文件大小:\n", note.contentLength);
         console.log("--笔记本guid:\n", note.notebookGuid);
         console.log("--内容:\n", note.content);
-            
     });
 
-//     for (var i in notebooks) {
-//         console.log(notebooks[i])
-// 
-//         // 获取笔记内容，异步方式
-//         var note = notebooks[i]
-//         client.getNoteContent(note).then(function (noteContent) {
-//             console.log(noteContent);
-//         });
-//     }
 
 
 
