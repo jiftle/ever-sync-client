@@ -28,7 +28,7 @@ export class EvernoteClient {
 
         // 实例化客户端
         const client = new Evernote.Client(options);
-        console.log("客户端实例: \n", client);
+//        console.log("客户端实例: \n", client);
         this.noteStore = client.getNoteStore(noteStoreUrl);
         //console.log("客户端实例-存储: \n", this.noteStore);
 

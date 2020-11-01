@@ -1,7 +1,7 @@
-import {
-    EverSyncClient
-} from "../eversyncclient";
+// 自定义，印象笔记客户端
+import EverSyncClient from "../eversyncclient";
 
+// 时间格式工具类
 import TimeUtil from "../utils/timeutil";
 
 
@@ -25,7 +25,12 @@ let config = {
 let client = new EverSyncClient();
 
 // 登录
-client.syncAccount(config.token, config.noteStoreUrl).then(function () {
+client.syncAccount(config.token, config.noteStoreUrl).then(function (result) {
+    //console.log("同步结果: ", result);
+    if(result == false){
+        console.log("登录失败, \nconfig:\n", config);
+        return;
+    }
 
     // 列出笔记本列表 --测试接口是否畅通
     let notebooks = client.listNotebooks();

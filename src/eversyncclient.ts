@@ -57,12 +57,12 @@ let config = {
 };
 
 // 类定义
-export class EverSyncClient {
+export default class EverSyncClient {
 
 
     // 同步印象笔记账号，元数据
     // Synchronize evernote account. For metadata.
-    async syncAccount(token, noteStoreUrl) {
+    async syncAccount(token :string, noteStoreUrl :string) {
         config.token = token;
         config.noteStoreUrl = noteStoreUrl;
 
@@ -72,26 +72,22 @@ export class EverSyncClient {
             client = new EvernoteClient(config.token, config.noteStoreUrl);
             // console.log(client);
             if (client.errorCode != null) {
-                console.log("--**-- 调用失败");
+                console.log("syncAccount--**-- EvernoteClient调用失败");
             }
-        
-            console.log("--**-- 1");
-           
-        try {
-            let curLoginStatus = await client.getCurLoginStatus();
-            console.log("--- 登录状态: ", curLoginStatus);
-            console.log("--**-- 2");
-            
-        } catch (error) {
-            console.log(" (X)|--> 登录失败，错误信息: \n", error);
-            return null;
-        }
 
+            //console.log("--**-- 1");
 
-            console.log("--**-- 3");
+            try {
+                let curLoginStatus = await client.getCurLoginStatus();
+                console.log("--- 登录状态: ", curLoginStatus);
+            } catch (error) {
+                console.log(" (X)|--> 登录失败，错误信息: \n", error);
+                return false;
+            }
+
             // 保存标签信息到本地, awit 等待执行完毕，返回
             const tags = await client.listTags();
-            console.log("----- tags: \n", tags);
+            //console.log("----- tags: \n", tags);
             tags.forEach(
                 tag => tagCache[tag.guid] = tag.name
             );
@@ -122,8 +118,10 @@ export class EverSyncClient {
             m_notesMap = _.groupBy(notes, "notebookGuid");
 
             console.log("账号同步成功，数据(标签、笔记本、元数据)已经缓存到本地. Synchronizing succeeded!", 1000);
+            return true;
         } catch (err) {
             this.wrapError(err);
+            return false;
         }
     }
 
@@ -394,7 +392,7 @@ export class EverSyncClient {
     // 获取笔记内容
     async getNoteContent(noteGuid) {
         try {
-            console.log("|--> 笔记GUID: ",noteGuid);
+            console.log("|--> 笔记GUID: ", noteGuid);
             const noteContent = await client.getNoteContent(noteGuid);
             console.log("|--> 笔记, ", noteContent);
 
