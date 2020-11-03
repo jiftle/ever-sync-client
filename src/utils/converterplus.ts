@@ -11,6 +11,7 @@ import * as path from "path";
 import * as toMarkdown from "to-markdown";
 import * as util from "util";
 
+// import * as fs from "fs";
 import fs from "./file";
 
 // 配置
@@ -54,7 +55,6 @@ export default class Converter {
     // 成员变量
     md;
     styles;
-
     // 构造器
     constructor(options = {}) {
         console.log("-------- 构造函数 -----------");
@@ -91,16 +91,11 @@ export default class Converter {
 
         // -------- 成员变量初始化
         this.md = md;
-        //console.log("----- this.md: \n", this.md);
-        this.initStyles().then(
-            function (data) {
-                this.styles = data;
-                console.log("data:\n", data);
-                console.log("this.style: \n", this.styles);
-            }
-            //data => this.styles = data;
-        ).catch(e => console.log(e));
-        console.log("----- this.styles: \n", this.styles);
+        //    let data = await this.initStyles();
+        //   this.styles =  data;
+        //   this.initStyles().then(
+        //       data => this.styles = data
+        //   ).catch(e => console.log(e));
     }
 
     // 初始化，样式层叠表
@@ -119,17 +114,37 @@ export default class Converter {
         console.log("func: initStyles--| markdown_theme: ", markdown_theme);
         console.log("func: initStyles--| highlight_theme: ", highlight_theme);
 
-        return Promise.all([
-            // TODO: read to the memory, instead of IO each time.
-            fs.readFileAsync(markdown_theme),
-            // TODO: read config css here and cover the default one.
-            fs.readFileAsync(highlight_theme)
-        ])
+          let ret1 = await fs.readFileAsync(markdown_theme)
+        let ret2 = await  fs.readFileAsync(highlight_theme)
+
+        let ret = [ret1,ret2];
+        // TODO: read config css here and cover the default one.
+        //     fs.readFileAsync(highlight_theme)
+
+    //    let ret = Promise.all([
+    //        // TODO: read to the memory, instead of IO each time.
+    //        fs.readFileAsync(markdown_theme),
+    //        // TODO: read config css here and cover the default one.
+    //        fs.readFileAsync(highlight_theme)
+    //    ]).then((values) => {
+    //        console.log("func: initStyles, 加载完成 |--values: \n", values);
+    //    })
+
+        return ret
     }
 
 
     // 内容转化为印象笔记专用的格式
     async toEnml(markcontent) {
+
+        //    await this.initStyles().then(function(data){
+        //        console.log("func: toEnml |--> 样式初始化:\n", data);
+        //    });
+
+        let data = await this.initStyles();
+        console.log("func: toEnml |--> 样式初始化:\n", data);
+        this.styles = data;
+
         console.log("Markdown原文:\n" + markcontent)
         let base64_str = Buffer.from(markcontent, "utf-8").toString("base64");
         console.log("Markdown-Base64:\n" + base64_str);
@@ -178,23 +193,23 @@ export default class Converter {
         console.log("func: processStyle--------------开始处理样式表css")
         // 处理css样式层叠表
         //console.log($)
-        const styleHtml = this.customizeCss($);
+        const styleHtml = await this.customizeCss($);
         console.log("func: processStyle---> styleHtml:\n", styleHtml);
-        //$.root().html(styleHtml);
-        //console.log("func: processStyle-----$root().html ---end")
+        $.root().html(styleHtml);
+        console.log("func: processStyle-----$root().html ---end")
 
-        //// Change html classes to inline styles
-        //// css样式表，存储到html内部
-        //const inlineStyleHtml = await inlineCss($.html(), {
-        //url: "/",
-        //removeStyleTags: true,
-        //removeHtmlSelectors: true,
-        //});
-        //console.log("---Change html classes to inline styles---in")
-        //$.root().html(inlineStyleHtml);
-        //console.log("---Change html classes to inline styles---out")
-        //$("en-todo").removeAttr("style");
-        //console.log("---en-todo --end")
+        // Change html classes to inline styles
+        // css样式表，存储到html内部
+        const inlineStyleHtml = await inlineCss($.html(), {
+        url: "/",
+        removeStyleTags: true,
+        removeHtmlSelectors: true,
+        });
+        console.log("---Change html classes to inline styles---in")
+        $.root().html(inlineStyleHtml);
+        console.log("---Change html classes to inline styles---out")
+        $("en-todo").removeAttr("style");
+        console.log("---en-todo --end")
     }
 
     // 自定义CSS样式，层叠样式表
@@ -217,6 +232,10 @@ export default class Converter {
         }
 
         console.log("func: customizeCss|--- this.styles: \n", this.styles);
+        if (this.styles == undefined) {
+            console.log("func: customizeCss|--> this.styles=undefined, 尚未加载完成");
+            return null;
+        }
         let ret = `<style>${this.styles.join("")}${fontFamily}${fontSize}${codeFontFamily}${codeFontSize}</style>` +
             `<div class="markdown-body">${$.html()}</div>`;
 

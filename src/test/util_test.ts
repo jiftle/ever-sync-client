@@ -1,19 +1,13 @@
-// import * as moment from 'moment';
-// import TimeUtil from "TimeUtil";
+//import * as fs from "fs";
+//
+//let markdown_theme = "./index.ts";
+//
+//var s_markdown_theme = fs.readFileAsync(markdown_theme);
+//console.log(s_markdown_theme);
 
-import TimeUtil from "../utils/timeutil";
+let fs = require('fs');
+let fileUrl = 'file:///Users/mac/tg-git/github/ever-sync-client/src/utils/file.ts';
 
-// export default class TimeUtil {
-//     static TimeStampToString(timestamp){
-//         let s = "";
-//         s = moment(timestamp).format("YYYY-MM-DD HH:mm:ss");
-//         return s;
-//     }
-// }
+fs.readFileSync(fileUrl);
 
 
-var timestamp = 1575801036000;
-
-let sf = TimeUtil.TimeStampToString(timestamp);
-
-console.log(sf);
