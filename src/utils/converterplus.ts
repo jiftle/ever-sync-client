@@ -57,7 +57,7 @@ export default class Converter {
     styles;
     // 构造器
     constructor(options = {}) {
-        console.log("-------- 构造函数 -----------");
+        //console.log("-------- 构造函数 -----------");
         const md = new MarkdownIt({
             html: true,
             linkify: true,
@@ -111,8 +111,8 @@ export default class Converter {
 
         let markdown_theme = path.join(MARKDOWN_THEME_PATH, markdownTheme);
         let highlight_theme = path.join(HIGHLIGHT_THEME_PATH, `${formatTheme}.css`);
-        console.log("func: initStyles--| markdown_theme: ", markdown_theme);
-        console.log("func: initStyles--| highlight_theme: ", highlight_theme);
+        //console.log("func: initStyles--| markdown_theme: ", markdown_theme);
+        //console.log("func: initStyles--| highlight_theme: ", highlight_theme);
 
           let ret1 = await fs.readFileAsync(markdown_theme)
         let ret2 = await  fs.readFileAsync(highlight_theme)
@@ -142,16 +142,16 @@ export default class Converter {
         //    });
 
         let data = await this.initStyles();
-        console.log("func: toEnml |--> 样式初始化:\n", data);
+        //console.log("func: toEnml |--> 样式初始化:\n", data);
         this.styles = data;
 
-        console.log("Markdown原文:\n" + markcontent)
+        //console.log("Markdown原文:\n" + markcontent)
         let base64_str = Buffer.from(markcontent, "utf-8").toString("base64");
-        console.log("Markdown-Base64:\n" + base64_str);
+        //console.log("Markdown-Base64:\n" + base64_str);
 
         // 1. 首先转化为HTML格式
         const html_str = await this.toHtml(markcontent);
-        console.log("markcontent-html:\n" + html_str);
+        //console.log("markcontent-html:\n" + html_str);
 
         // 2-1. 加入专用的笔记头
         let enml = '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd"><en-note>';
@@ -166,37 +166,37 @@ export default class Converter {
         enml += html_str;
         enml += "</en-note>";
 
-        console.log("完整的enml: \n" + enml)
+        //console.log("完整的enml: \n" + enml)
         return enml;
     }
 
 
     // 转换为HTML
     async toHtml(markcontent) {
-        console.log("func: toHtml--------- in -----------")
+        //console.log("func: toHtml--------- in -----------")
         const tokens = this.md.parse(markcontent, {});
         //console.log("func: toHtml--------- parse ok -----------,tokens=", tokens)
 
         const html = this.md.renderer.render(tokens, this.md.options);
-        console.log("func: toHtml-------渲染后的Html:\n", html);
+        //console.log("func: toHtml-------渲染后的Html:\n", html);
 
         const $ = cheerio.load(html);
         await this.processStyle($);
 
         let xml_str = $.xml();
-        console.log("func: toHtml--------- 处理完样式后,xml:\n", xml_str);
+        //console.log("func: toHtml--------- 处理完样式后,xml:\n", xml_str);
         return xml_str;
     }
 
     // 处理样式
     async processStyle($) {
-        console.log("func: processStyle--------------开始处理样式表css")
+        //console.log("func: processStyle--------------开始处理样式表css")
         // 处理css样式层叠表
         //console.log($)
         const styleHtml = await this.customizeCss($);
-        console.log("func: processStyle---> styleHtml:\n", styleHtml);
+        //console.log("func: processStyle---> styleHtml:\n", styleHtml);
         $.root().html(styleHtml);
-        console.log("func: processStyle-----$root().html ---end")
+        //console.log("func: processStyle-----$root().html ---end")
 
         // Change html classes to inline styles
         // css样式表，存储到html内部
@@ -205,11 +205,11 @@ export default class Converter {
         removeStyleTags: true,
         removeHtmlSelectors: true,
         });
-        console.log("---Change html classes to inline styles---in")
+        //console.log("---Change html classes to inline styles---in")
         $.root().html(inlineStyleHtml);
-        console.log("---Change html classes to inline styles---out")
+        //console.log("---Change html classes to inline styles---out")
         $("en-todo").removeAttr("style");
-        console.log("---en-todo --end")
+        //console.log("---en-todo --end")
     }
 
     // 自定义CSS样式，层叠样式表
@@ -231,7 +231,7 @@ export default class Converter {
             codeFontSize = util.format(OVERRIDE_CODE_FONT_SIZE, config.codeFontSize);
         }
 
-        console.log("func: customizeCss|--- this.styles: \n", this.styles);
+        //console.log("func: customizeCss|--- this.styles: \n", this.styles);
         if (this.styles == undefined) {
             console.log("func: customizeCss|--> this.styles=undefined, 尚未加载完成");
             return null;
@@ -274,10 +274,12 @@ export default class Converter {
 }
 
 //---------------------- 单元测试代码 ------------------------
-let markdown = "你好啊我的Markdown笔记";
+let markdown = "# 单元测试 \n## 哈哈H1标题\n - 你好啊我的Markdown笔记\n - 美国总统大选2020年，拜登 and Trump 🇺";
 
 const converter = new Converter({});
 // 转换笔记内容为印象笔记的专用格式
 converter.toEnml(markdown).then(function (enml) {
-    console.log(enml);
+  console.log(enml);
+    let md = converter.toMd(enml);
+    console.log(md);
 });

@@ -40,7 +40,7 @@ export class EvernoteClient {
 
         // Each time you want to check for new and updated notes...
         let currentState = await this.noteStore.getSyncState();
-        console.log("currentState = ", currentState);
+//        console.log("currentState = ", currentState);
       //  let currentUpdateCount = currentState.getUpdateCount();
       //  console.log("currentUpdateCount = ", currentUpdateCount);
 

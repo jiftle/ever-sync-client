@@ -80,6 +80,13 @@ export default class EverSyncClient {
             try {
                 let curLoginStatus = await client.getCurLoginStatus();
                 console.log("--- 登录状态: ", curLoginStatus);
+  //currentTime: 1604501263592,
+  //fullSyncBefore: 1454173352000,
+  //updateCount: 18254,
+  //uploaded: 36060,
+  //userLastUpdated: 1604329567000,
+  //userMaxMessageEventId: 94206583
+
             } catch (error) {
                 console.log(" (X)|--> 登录失败，错误信息: \n", error);
                 return false;
