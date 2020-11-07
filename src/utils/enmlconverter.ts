@@ -51,7 +51,7 @@ const OVERRIDE_CODE_FONT_SIZE = `
 }`;
 
 // 转换器
-export default class Converter {
+export default class EnmlConverter {
     // 成员变量
     md;
     styles;
@@ -276,7 +276,7 @@ export default class Converter {
 //---------------------- 单元测试代码 ------------------------
 let markdown = "# 单元测试 \n## 哈哈H1标题\n - 你好啊我的Markdown笔记\n - 美国总统大选2020年，拜登 and Trump 🇺";
 
-const converter = new Converter({});
+const converter = new EnmlConverter({});
 // 转换笔记内容为印象笔记的专用格式
 converter.toEnml(markdown).then(function (enml) {
   console.log(enml);

@@ -1,6 +1,7 @@
 # dirs
 out/**
 build
+target
 node_modules/**
 
 # files

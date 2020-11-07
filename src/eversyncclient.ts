@@ -1,5 +1,5 @@
-import * as buffer from "buffer";
-import Converter from "./utils/converterplus";
+//import * as buffer from "buffer";
+import EnmlConverter from "./utils/enmlconverter";
 import * as _ from "lodash";
 import * as open from "opener";
 import * as util from "util";
@@ -45,7 +45,7 @@ const localNote = {};
 let client;
 //const serverResourcesCache = {};
 const tagCache = {};
-const converter = new Converter({});
+const converter = new EnmlConverter({});
 
 // doc -> [{filepath: attachment}]
 const attachmentsCache = {};
@@ -223,7 +223,7 @@ export default class EverSyncClient {
                 const noteResources = await client.getNoteResources(noteGuid);
                 updatedNote = await this.updateNoteContent(meta, content, noteGuid);
 
-                let notebookName = notebooks.find(notebook => notebook.guid === updatedNote.notebookGuid).name;
+                let notebookName = m_notebooks.find(notebook => notebook.guid === updatedNote.notebookGuid).name;
                 // attachments cache should be removed.
                 console.log(`${notebookName}>>${title} updated successfully.`);
             } else {
@@ -231,25 +231,25 @@ export default class EverSyncClient {
                 if (nguid) {
                     const updateNote = await this.updateNoteOnServer(meta, content, resources, nguid);
                     updateNote.resources = resources;
-                    if (!notesMap[updateNote.notebookGuid]) {
-                        notesMap[updateNote.notebookGuid] = [updateNote];
+                    if (!m_notesMap[updateNote.notebookGuid]) {
+                        m_notesMap[updateNote.notebookGuid] = [updateNote];
                     } else {
-                        notesMap[updateNote.notebookGuid].push(updateNote);
+                        m_notesMap[updateNote.notebookGuid].push(updateNote);
                     }
                     localNote[fileName] = updateNote;
-                    let notebookName = notebooks.find(notebook => notebook.guid === updateNote.notebookGuid).name;
+                    let notebookName = m_notebooks.find(notebook => notebook.guid === updateNote.notebookGuid).name;
                     attachmentsCache[fileName] = [];
                     return console.log(`${notebookName}>>${title} update to server successfully.`);
                 } else {
                     const createdNote = await this.createNote(meta, content, resources);
                     createdNote.resources = resources;
-                    if (!notesMap[createdNote.notebookGuid]) {
-                        notesMap[createdNote.notebookGuid] = [createdNote];
+                    if (!m_notesMap[createdNote.notebookGuid]) {
+                        m_notesMap[createdNote.notebookGuid] = [createdNote];
                     } else {
-                        notesMap[createdNote.notebookGuid].push(createdNote);
+                        m_notesMap[createdNote.notebookGuid].push(createdNote);
                     }
                     localNote[fileName] = createdNote;
-                    let notebookName = notebooks.find(notebook => notebook.guid === createdNote.notebookGuid).name;
+                    let notebookName = m_notebooks.find(notebook => notebook.guid === createdNote.notebookGuid).name;
                     attachmentsCache[fileName] = [];
                     console.log(`${notebookName}>>${title} created successfully.`);
                 }
@@ -280,12 +280,12 @@ export default class EverSyncClient {
         try {
             let notebookGuid;
             if (notebook) {
-                let notebookLocal = notebooks.find(nb => nb.name === notebook);
+                let notebookLocal = m_notebooks.find(nb => nb.name === notebook);
                 if (notebookLocal) {
                     notebookGuid = notebookLocal.guid;
                 } else {
                     const createdNotebook = await client.createNotebook(notebook);
-                    notebooks.push(createdNotebook);
+                    m_notebooks.push(createdNotebook);
                     notebookGuid = createdNotebook.guid;
                 }
             } else {
@@ -369,8 +369,9 @@ export default class EverSyncClient {
             const searchResult = await client.searchNote(query);
             const noteWithbook = searchResult.notes.map(note => {
                 let title = note["title"];
-                selectedNotebook = notebooks.find(notebook => notebook.guid === note.notebookGuid);
-                return selectedNotebook.name + ">>" + title;
+
+                m_selectedNotebook = m_notebooks.find(notebook => notebook.guid === note.notebookGuid);
+                return m_selectedNotebook.name + ">>" + title;
             });
             console.log(noteWithbook);
         } catch (err) {
