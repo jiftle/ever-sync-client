@@ -227,8 +227,7 @@
   "scripts": {
     "dev": "tsc -watch -p ./src/",
     "build": "tsc",
-    "clean": "rm -rf ./target",
-    "postinstall": "node ./node_modules/vscode/bin/install"
+    "clean": "rm -rf ./build"
   },
   "dependencies": {
     "bluebird": "^3.5.0",

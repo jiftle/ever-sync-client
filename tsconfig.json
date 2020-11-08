@@ -4,7 +4,7 @@
         "allowSyntheticDefaultImports": true,
         "module": "commonjs",
         "target": "es6",
-        "outDir": "./target",
+        "outDir": "./build",
         "lib": [
             "es6"
         ],
