@@ -173,6 +173,9 @@ export default class EnmlConverter {
 
     // 转换为HTML
     async toHtml(markcontent) {
+        let data = await this.initStyles();
+        //console.log("func: toEnml |--> 样式初始化:\n", data);
+        this.styles = data;
         //console.log("func: toHtml--------- in -----------")
         const tokens = this.md.parse(markcontent, {});
         //console.log("func: toHtml--------- parse ok -----------,tokens=", tokens)
@@ -282,4 +285,9 @@ converter.toEnml(markdown).then(function (enml) {
   console.log(enml);
     let md = converter.toMd(enml);
     console.log(md);
+});
+
+// 笔记转换成Html
+converter.toHtml(markdown).then(function(html){
+    console.log(html);
 });
