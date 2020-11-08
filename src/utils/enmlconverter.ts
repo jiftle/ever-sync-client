@@ -279,25 +279,15 @@ export default class EnmlConverter {
 //---------------------- 单元测试代码 ------------------------
 let markdown = "# 单元测试 \n## 哈哈H1标题\n - 你好啊我的Markdown笔记\n - 美国总统大选2020年，拜登 and Trump 🇺";
 
-<<<<<<< HEAD:src/utils/enmlconverter.ts
 const converter = new EnmlConverter({});
 // 转换笔记内容为印象笔记的专用格式
 converter.toEnml(markdown).then(function (enml) {
   console.log(enml);
     let md = converter.toMd(enml);
     console.log(md);
-=======
-const converter = new Converter({});
-
-// // 转换笔记内容为印象笔记的专用格式
-// converter.toEnml(markdown).then(function (enml) {
-//   console.log(enml);
-//     let md = converter.toMd(enml);
-//     console.log(md);
-// });
+});
 
 // 笔记转换成Html
 converter.toHtml(markdown).then(function(html){
     console.log(html);
->>>>>>> af2d5c89de962330bc46c926db8f90c5629ed602:src/utils/converterplus.ts
 });
